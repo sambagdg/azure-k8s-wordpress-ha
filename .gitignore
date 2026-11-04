@@ -1,0 +1,14 @@
+# Terraform : état, plugins et variables personnelles
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+crash.log
+
+# Ansible : inventaire généré
+ansible/inventory.ini
+
+# macOS
+.DS_Store
