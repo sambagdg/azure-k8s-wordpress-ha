@@ -7,7 +7,7 @@ variable "prefix" {
 variable "location" {
   description = "Région Azure"
   type        = string
-  default     = "francecentral"
+  default     = "northeurope"
 }
 
 variable "owner" {
@@ -53,19 +53,19 @@ variable "vms" {
   }))
   default = {
     master = {
-      size       = "Standard_B2ls_v2"
+      size       = "Standard_B2s"
       private_ip = "10.10.1.10"
       zone       = "1"
       role       = "master"
     }
     worker1 = {
-      size       = "Standard_B2s_v2"
+      size       = "Standard_B2ms"
       private_ip = "10.10.1.11"
       zone       = "2"
       role       = "worker"
     }
     worker2 = {
-      size       = "Standard_B2s_v2"
+      size       = "Standard_B2ms"
       private_ip = "10.10.1.12"
       zone       = "3"
       role       = "worker"
@@ -79,4 +79,11 @@ locals {
     owner  = var.owner
     env    = "lab"
   }
+}
+
+
+variable "resource_group_name" {
+  description = "Groupe de ressources existant fourni par l'organisme de formation"
+  type        = string
+  default     = "rg-formation-samba"
 }
