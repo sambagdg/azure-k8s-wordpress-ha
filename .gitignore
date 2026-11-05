@@ -13,3 +13,4 @@ ansible/inventory.ini
 # macOS
 .DS_Store
 **/tfplan
+documentation/captures/
