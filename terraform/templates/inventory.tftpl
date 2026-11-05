@@ -1,4 +1,4 @@
-[master]
+[control_plane]
 %{ for name, vm in vms ~}
 %{ if vm.role == "master" ~}
 ${name} ansible_host=${ips[name]} private_ip=${vm.private_ip}
@@ -16,7 +16,7 @@ ${name} ansible_host=${ips[name]} private_ip=${vm.private_ip}
 worker2
 
 [k8s_cluster:children]
-master
+control_plane
 workers
 
 [all:vars]
