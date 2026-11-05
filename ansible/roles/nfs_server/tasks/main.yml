@@ -1,0 +1,51 @@
+---
+- name: Créer une partition GPT sur le disque de données
+  community.general.parted:
+    device: "{{ nfs_disk_device }}"
+    number: 1
+    label: gpt
+    state: present
+
+- name: Formater la partition en ext4
+  community.general.filesystem:
+    fstype: ext4
+    dev: "{{ nfs_disk_device }}-part1"
+
+- name: Monter le disque sur {{ nfs_root }} (permanent)
+  ansible.posix.mount:
+    path: "{{ nfs_root }}"
+    src: "{{ nfs_disk_device }}-part1"
+    fstype: ext4
+    opts: defaults,nofail
+    state: mounted
+
+- name: Créer les dossiers partagés
+  ansible.builtin.file:
+    path: "{{ nfs_root }}/{{ item.name }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ nfs_shares }}"
+
+- name: Installer le serveur NFS
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    state: present
+
+- name: Déclarer les exports NFS
+  ansible.builtin.copy:
+    dest: /etc/exports
+    content: |
+      # Géré par Ansible — ne pas modifier à la main
+      {% for share in nfs_shares %}
+      {{ nfs_root }}/{{ share.name }} {{ nfs_allowed_network }}(rw,sync,no_subtree_check,no_root_squash)
+      {% endfor %}
+    mode: "0644"
+  notify: Recharger les exports NFS
+
+- name: Démarrer et activer le serveur NFS
+  ansible.builtin.systemd:
+    name: nfs-kernel-server
+    state: started
+    enabled: true

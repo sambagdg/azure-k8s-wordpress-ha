@@ -7,3 +7,11 @@ k8s_packages:
   - kubectl
 flannel_manifest_url: "https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml"
 local_kube_dir: "{{ playbook_dir }}/../.kube"
+nfs_disk_device: /dev/disk/azure/scsi1/lun0
+nfs_root: /srv/nfs
+nfs_allowed_network: "10.10.1.0/24"
+nfs_server_ip: "10.10.1.12"
+nfs_shares:
+  - { name: mysql,     owner: 999, group: 999, mode: "0750" }
+  - { name: wordpress, owner: 33,  group: 33,  mode: "0755" }
+  - { name: backup,    owner: 0,   group: 0,   mode: "0750" }

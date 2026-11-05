@@ -31,3 +31,9 @@
       loop: "{{ groups['workers'] }}"
       register: label
       changed_when: "'not labeled' not in label.stdout"
+
+- name: Configurer le serveur de stockage NFS
+  hosts: nfs_server
+  become: true
+  roles:
+    - nfs_server
