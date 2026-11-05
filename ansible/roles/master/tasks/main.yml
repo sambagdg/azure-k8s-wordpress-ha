@@ -1,0 +1,57 @@
+---
+- name: Initialiser le cluster avec kubeadm
+  ansible.builtin.command: >
+    kubeadm init
+    --apiserver-advertise-address={{ private_ip }}
+    --pod-network-cidr={{ pod_network_cidr }}
+    --apiserver-cert-extra-sans={{ ansible_host }}
+    --node-name={{ inventory_hostname }}
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Créer le dossier .kube de l'administrateur
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Configurer kubectl pour l'administrateur
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Installer le réseau des pods Flannel
+  ansible.builtin.command: kubectl apply -f {{ flannel_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: flannel
+  changed_when: "'created' in flannel.stdout or 'configured' in flannel.stdout"
+
+- name: Générer la commande de jonction des workers
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_cmd
+  changed_when: false
+
+- name: Mémoriser la commande de jonction
+  ansible.builtin.set_fact:
+    join_command: "{{ join_cmd.stdout }}"
+
+- name: Rapatrier admin.conf sur le poste de contrôle
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ local_kube_dir }}/admin.conf"
+    flat: true
+
+- name: Créer un kubeconfig local pointant vers l'IP publique du master
+  ansible.builtin.copy:
+    content: "{{ lookup('file', local_kube_dir + '/admin.conf') | regex_replace('https://[0-9.]+:6443', 'https://' + ansible_host + ':6443') }}"
+    dest: "{{ local_kube_dir }}/config"
+    mode: "0600"
+  delegate_to: localhost
+  become: false

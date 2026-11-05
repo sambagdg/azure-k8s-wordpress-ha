@@ -1,0 +1,33 @@
+---
+- name: Préparer les nœuds du cluster Kubernetes
+  hosts: k8s_cluster
+  become: true
+  roles:
+    - common
+    - containerd
+    - kubernetes
+
+- name: Initialiser le control-plane
+  hosts: control_plane
+  become: true
+  roles:
+    - master
+
+- name: Joindre les workers au cluster
+  hosts: workers
+  become: true
+  roles:
+    - workers
+
+- name: Étiqueter les workers
+  hosts: control_plane
+  become: true
+  tasks:
+    - name: Ajouter le rôle worker aux nœuds
+      ansible.builtin.command: >
+        kubectl label node {{ item }} node-role.kubernetes.io/worker= --overwrite
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      loop: "{{ groups['workers'] }}"
+      register: label
+      changed_when: "'not labeled' not in label.stdout"

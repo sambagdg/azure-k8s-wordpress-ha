@@ -1,0 +1,9 @@
+---
+k8s_version: "1.35"
+pod_network_cidr: "10.244.0.0/16"
+k8s_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+flannel_manifest_url: "https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml"
+local_kube_dir: "{{ playbook_dir }}/../.kube"
