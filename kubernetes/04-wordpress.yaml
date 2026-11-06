@@ -6,7 +6,7 @@ metadata:
   labels:
     app: wordpress
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: wordpress
@@ -15,6 +15,13 @@ spec:
       labels:
         app: wordpress
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: wordpress
       initContainers:
         - name: wait-for-mysql
           image: busybox:1.36
@@ -28,6 +35,18 @@ spec:
                 sleep 3
               done
               echo "MySQL disponible, démarrage de WordPress"
+        - name: fix-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              find /var/www/html ! -user 33 -exec chown 33:33 {} +
+              find /var/www/html -type d -perm 700 -exec chmod 755 {} +
+              echo "Droits du volume vérifiés"
+          volumeMounts:
+            - name: wordpress-data
+              mountPath: /var/www/html
       containers:
         - name: wordpress
           image: wordpress:6-apache
@@ -58,12 +77,10 @@ spec:
             httpGet:
               path: /wp-includes/images/blank.gif
               port: 80
-            initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
               port: 80
-            initialDelaySeconds: 30
             periodSeconds: 20
           volumeMounts:
             - name: wordpress-data

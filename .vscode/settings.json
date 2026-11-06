@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.osx": {
+    "KUBECONFIG": "${workspaceFolder}/.kube/config"
+  }
+}
