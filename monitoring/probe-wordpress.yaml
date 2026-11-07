@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: wordpress-http
+  namespace: monitoring
+spec:
+  jobName: wordpress-http
+  interval: 30s
+  module: http_wordpress
+  prober:
+    url: blackbox-prometheus-blackbox-exporter.monitoring.svc:9115
+  targets:
+    staticConfig:
+      static:
+        - http://wordpress.gandega-project1.svc.cluster.local/

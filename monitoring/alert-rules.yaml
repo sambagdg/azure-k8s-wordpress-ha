@@ -1,0 +1,61 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: wordpress-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: projet-wordpress
+      rules:
+        - alert: NoeudCPUEleve
+          expr: (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m]))) * 100 > 80
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "CPU élevé sur {{ $labels.instance }}"
+            description: "Utilisation CPU de {{ $value | printf \"%.0f\" }} % depuis plus de 2 minutes."
+
+        - alert: MySQLIndisponible
+          expr: kube_deployment_status_replicas_available{namespace="gandega-project1", deployment="mysql"} < 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Base de données MySQL indisponible"
+            description: "Aucun pod MySQL disponible depuis plus d'une minute."
+
+        - alert: WordPressReplicasInsuffisants
+          expr: kube_deployment_status_replicas_available{namespace="gandega-project1", deployment="wordpress"} < 2
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Haute disponibilité WordPress dégradée"
+            description: "Seulement {{ $value }} pod(s) WordPress disponible(s)."
+
+        - alert: PodRedemarrages
+          expr: increase(kube_pod_container_status_restarts_total{namespace="gandega-project1"}[10m]) > 2
+          labels:
+            severity: warning
+          annotations:
+            summary: "Le pod {{ $labels.pod }} redémarre en boucle"
+            description: "Plus de 2 redémarrages en 10 minutes."
+
+        - alert: WordPressInaccessible
+          expr: probe_success{job="wordpress-http"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Le site WordPress est inaccessible"
+            description: "La sonde HTTP échoue depuis plus d'une minute."
+
+        - alert: WordPressLent
+          expr: probe_duration_seconds{job="wordpress-http"} > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Le site WordPress est lent"
+            description: "Temps de réponse de {{ $value | printf \"%.2f\" }} s."

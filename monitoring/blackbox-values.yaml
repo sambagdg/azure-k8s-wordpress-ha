@@ -1,0 +1,11 @@
+config:
+  modules:
+    http_wordpress:
+      prober: http
+      timeout: 5s
+      http:
+        valid_status_codes: [200]
+        follow_redirects: false
+        preferred_ip_protocol: ip4
+        headers:
+          Host: "40.113.41.15:30080"
