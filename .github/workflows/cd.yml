@@ -1,0 +1,55 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kubernetes/**"
+      - "tests/smoke.sh"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploiement-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: Contrôles qualité
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Déploiement sur le cluster
+    needs: ci
+    runs-on: [self-hosted, azure-k8s]
+    environment: production
+    env:
+      APP_MANIFESTS: >-
+        -f kubernetes/01-configmap.yaml
+        -f kubernetes/03-mysql.yaml
+        -f kubernetes/04-wordpress.yaml
+        -f kubernetes/05-wordpress-pdb.yaml
+        -f kubernetes/06-wordpress-hpa.yaml
+        -f kubernetes/07-mysql-backup-cronjob.yaml
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Identité et droits du pipeline
+        run: |
+          kubectl config current-context
+          kubectl auth can-i patch deployments
+
+      - name: Validation côté serveur (dry-run)
+        run: kubectl apply --dry-run=server $APP_MANIFESTS
+
+      - name: Différences avec l'état du cluster
+        run: kubectl diff $APP_MANIFESTS || true
+
+      - name: Déployer
+        run: kubectl apply $APP_MANIFESTS
+
+      - name: Test de fumée
+        run: ./tests/smoke.sh
