@@ -7,6 +7,12 @@ grafana:
     type: NodePort
     nodePort: 30300
   defaultDashboardsTimezone: Europe/Paris
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.monitoring.svc:3100
+      access: proxy
   resources:
     requests:
       cpu: 50m
