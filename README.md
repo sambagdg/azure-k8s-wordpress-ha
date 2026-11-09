@@ -5,6 +5,7 @@
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-1.35-326CE5?logo=kubernetes&logoColor=white)
 ![Azure](https://img.shields.io/badge/Azure-North%20Europe-0078D4?logo=microsoftazure&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-Grafana-E6522C?logo=prometheus&logoColor=white)
+![CI](https://github.com/sambagdg/azure-k8s-wordpress-ha/actions/workflows/ci.yml/badge.svg)
 
 Déploiement **entièrement automatisé** d'une application e-commerce WordPress / MySQL sur un cluster Kubernetes de 3 nœuds dans Microsoft Azure : Infrastructure as Code, gestion de configuration, stockage persistant NFS, haute disponibilité, supervision, logs centralisés et sauvegardes.
 
