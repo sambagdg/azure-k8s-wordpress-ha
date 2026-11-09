@@ -1,5 +1,5 @@
 ---
 - name: Joindre le nœud au cluster
-  ansible.builtin.command: "{{ hostvars[groups['control_plane'][0]].join_command }}"
+  ansible.builtin.command: "{{ hostvars[groups['control_plane'][0]].master_join_command }}"
   args:
     creates: /etc/kubernetes/kubelet.conf

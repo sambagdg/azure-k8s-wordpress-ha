@@ -11,7 +11,7 @@
     fstype: ext4
     dev: "{{ nfs_disk_device }}-part1"
 
-- name: Monter le disque sur {{ nfs_root }} (permanent)
+- name: Monter le disque de façon permanente sur {{ nfs_root }}
   ansible.posix.mount:
     path: "{{ nfs_root }}"
     src: "{{ nfs_disk_device }}-part1"

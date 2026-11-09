@@ -1,0 +1,5 @@
+---
+exclude_paths:
+  - inventory.ini
+skip_list:
+  - yaml[line-length]
