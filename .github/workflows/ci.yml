@@ -61,7 +61,7 @@ jobs:
           kubeconform -strict -summary \
             -schema-location default \
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
-            kubernetes/0*.yaml monitoring/probe-wordpress.yaml monitoring/alert-rules.yaml
+            kubernetes/0*.yaml kubernetes/ci/*.yaml monitoring/probe-wordpress.yaml monitoring/alert-rules.yaml
 
   secrets:
     name: Détection de secrets (gitleaks)

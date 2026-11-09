@@ -1,0 +1,104 @@
+---
+- name: Créer l'utilisateur dédié au runner
+  ansible.builtin.user:
+    name: "{{ github_runner_user }}"
+    system: true
+    shell: /bin/bash
+    create_home: true
+
+- name: Récupérer la dernière version du runner GitHub
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/actions/runner/releases/latest
+    return_content: true
+  register: github_runner_release
+
+- name: Mémoriser la version du runner
+  ansible.builtin.set_fact:
+    github_runner_version: "{{ github_runner_release.json.tag_name | regex_replace('^v', '') }}"
+
+- name: Créer le dossier du runner
+  ansible.builtin.file:
+    path: "{{ github_runner_dir }}"
+    state: directory
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: "0750"
+
+- name: Télécharger et extraire le runner {{ github_runner_version }}
+  ansible.builtin.unarchive:
+    src: "https://github.com/actions/runner/releases/download/v{{ github_runner_version }}/actions-runner-linux-x64-{{ github_runner_version }}.tar.gz"
+    dest: "{{ github_runner_dir }}"
+    remote_src: true
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    creates: "{{ github_runner_dir }}/config.sh"
+
+- name: Installer les dépendances système du runner
+  ansible.builtin.command: "{{ github_runner_dir }}/bin/installdependencies.sh"
+  changed_when: false
+
+- name: Lire le certificat de l'autorité du cluster
+  ansible.builtin.slurp:
+    src: /etc/kubernetes/pki/ca.crt
+  register: github_runner_ca
+
+- name: Vérifier si le kubeconfig du pipeline existe
+  ansible.builtin.stat:
+    path: "/home/{{ github_runner_user }}/.kube/config"
+  register: github_runner_kubeconfig
+
+- name: Générer un jeton pour le ServiceAccount github-deployer (1 an)
+  ansible.builtin.command: kubectl create token github-deployer -n gandega-project1 --duration=8760h
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: github_runner_sa_token
+  changed_when: true
+  no_log: true
+  when: not github_runner_kubeconfig.stat.exists
+
+- name: Créer le dossier .kube du runner
+  ansible.builtin.file:
+    path: "/home/{{ github_runner_user }}/.kube"
+    state: directory
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: "0700"
+
+- name: Déployer le kubeconfig limité du pipeline
+  ansible.builtin.template:
+    src: kubeconfig.j2
+    dest: "/home/{{ github_runner_user }}/.kube/config"
+    owner: "{{ github_runner_user }}"
+    group: "{{ github_runner_user }}"
+    mode: "0600"
+  no_log: true
+  when: not github_runner_kubeconfig.stat.exists
+
+- name: Enregistrer le runner auprès de GitHub
+  ansible.builtin.command: >
+    ./config.sh --unattended --replace
+    --url {{ github_repo_url }}
+    --token {{ github_runner_token }}
+    --name {{ inventory_hostname }}
+    --labels {{ github_runner_labels }}
+  args:
+    chdir: "{{ github_runner_dir }}"
+    creates: "{{ github_runner_dir }}/.runner"
+  become: true
+  become_user: "{{ github_runner_user }}"
+  no_log: true
+  when: github_runner_token is defined
+
+- name: Installer le runner comme service systemd
+  ansible.builtin.command: "./svc.sh install {{ github_runner_user }}"
+  args:
+    chdir: "{{ github_runner_dir }}"
+    creates: "{{ github_runner_dir }}/.service"
+  when: github_runner_token is defined
+
+- name: Démarrer le service du runner
+  ansible.builtin.command: ./svc.sh start
+  args:
+    chdir: "{{ github_runner_dir }}"
+  changed_when: false
+  when: github_runner_token is defined

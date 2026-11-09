@@ -1,0 +1,6 @@
+---
+- name: Installer le runner GitHub Actions auto-hébergé
+  hosts: control_plane
+  become: true
+  roles:
+    - github_runner
