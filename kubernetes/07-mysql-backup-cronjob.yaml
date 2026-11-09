@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: gandega-project1
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "Europe/Paris"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: mysqldump
+              image: mysql:8.4
+              env:
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: MYSQL_ROOT_PASSWORD
+              command:
+                - bash
+                - -c
+                - |
+                  set -euo pipefail
+                  DEST=/backup/mysql
+                  mkdir -p "$DEST"
+                  FILE="$DEST/wordpress-$(date +%Y%m%d-%H%M%S).sql"
+                  mysqldump -h mysql -u root --single-transaction --routines --triggers --databases wordpress > "$FILE"
+                  echo "Sauvegarde créée : $FILE ($(du -h "$FILE" | cut -f1))"
+                  ls -1t "$DEST"/wordpress-*.sql | tail -n +8 | while read -r f; do rm -f "$f"; echo "Supprimée : $f"; done
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              nfs:
+                server: 10.10.1.12
+                path: /srv/nfs/backup

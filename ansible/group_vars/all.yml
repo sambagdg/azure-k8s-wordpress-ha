@@ -15,3 +15,6 @@ nfs_shares:
   - { name: mysql,     owner: 999, group: 999, mode: "0750" }
   - { name: wordpress, owner: 33,  group: 33,  mode: "0755" }
   - { name: backup,    owner: 0,   group: 0,   mode: "0750" }
+etcd_version: "3.6.6"
+backup_mount: /mnt/backup
+backup_retention: 7

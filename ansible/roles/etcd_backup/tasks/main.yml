@@ -1,0 +1,47 @@
+---
+- name: Télécharger et extraire etcd {{ etcd_version }}
+  ansible.builtin.unarchive:
+    src: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/etcdctl"
+
+- name: Installer etcdctl et etcdutl
+  ansible.builtin.copy:
+    src: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    remote_src: true
+    mode: "0755"
+  loop:
+    - etcdctl
+    - etcdutl
+
+- name: Monter le partage NFS des sauvegardes
+  ansible.posix.mount:
+    path: "{{ backup_mount }}"
+    src: "{{ nfs_server_ip }}:{{ nfs_root }}/backup"
+    fstype: nfs
+    opts: defaults,_netdev,nofail
+    state: mounted
+
+- name: Déployer le script de sauvegarde
+  ansible.builtin.template:
+    src: etcd-backup.sh.j2
+    dest: /usr/local/bin/etcd-backup.sh
+    mode: "0750"
+
+- name: Planifier la sauvegarde quotidienne (01h30)
+  ansible.builtin.cron:
+    name: "Sauvegarde etcd"
+    minute: "30"
+    hour: "1"
+    job: "/usr/local/bin/etcd-backup.sh >> /var/log/etcd-backup.log 2>&1"
+
+- name: Lancer une sauvegarde immédiate
+  ansible.builtin.command: /usr/local/bin/etcd-backup.sh
+  register: etcd_backup
+  changed_when: true
+
+- name: Afficher le résultat
+  ansible.builtin.debug:
+    var: etcd_backup.stdout_lines

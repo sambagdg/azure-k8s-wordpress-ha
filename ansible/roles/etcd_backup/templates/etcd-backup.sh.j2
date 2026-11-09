@@ -1,0 +1,23 @@
+#!/bin/bash
+# Sauvegarde etcd — géré par Ansible, ne pas modifier à la main
+set -euo pipefail
+
+DEST="{{ backup_mount }}/etcd"
+TS=$(date +%Y%m%d-%H%M%S)
+SNAPSHOT="$DEST/etcd-$TS.db"
+
+mkdir -p "$DEST"
+
+ETCDCTL_API=3 /usr/local/bin/etcdctl \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save "$SNAPSHOT"
+
+/usr/local/bin/etcdutl snapshot status "$SNAPSHOT" -w table
+
+# Rétention : on garde les {{ backup_retention }} dernières sauvegardes
+ls -1t "$DEST"/etcd-*.db | tail -n +{{ backup_retention + 1 }} | xargs -r rm -f
+
+echo "Sauvegarde etcd terminée : $SNAPSHOT"

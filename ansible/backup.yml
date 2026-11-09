@@ -1,0 +1,6 @@
+---
+- name: Sauvegarder la base etcd du cluster
+  hosts: control_plane
+  become: true
+  roles:
+    - etcd_backup
