@@ -16,3 +16,4 @@ ansible/inventory.ini
 documentation/captures/
 .kube/
 .secrets/
+ansible/.ansible/
